@@ -1,3 +1,4 @@
+from asyncio.windows_events import NULL
 import math
 import random
 from select import select
@@ -5,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+LEARNING_RATE = 0.01
 
 class KernelDensityEstimator:
 
@@ -20,7 +22,7 @@ class KernelDensityEstimator:
             delta = np.sum((point - point_coordinates)**2)**2
             #density += 1 / (2* np.pi * self.sigma**2) * np.exp(-delta/(2*self.sigma**2))
             #density += (delta + 0.5) * (0.5 - delta)
-            density += np.exp(-(delta/self.h)**2) / ((2.*np.pi)**(1/2))
+            density += np.exp(-(delta/self.h)**2) / ((2.*np.pi)**(1/2)) / len(self.datas)
         return density
 
     # calcul le gradient de la fonction de densité
@@ -50,13 +52,12 @@ def gradient_ascent(density_estimator, starting_point):
     last_point = starting_point.copy()
     points = []
 
-    lr = 0.01
     counter = 0
     while current_density >= last_density:
         gradient = density_estimator.getDensityGradient(current_point)
         last_point = current_point.copy()
         for i in range(len(gradient)):
-            current_point[i] += gradient_stepp(gradient[i], lr)
+            current_point[i] += gradient_stepp(gradient[i], LEARNING_RATE)
         last_density = current_density
         points.append(current_point.copy())
         current_density = density_estimator.getDensity(current_point)
@@ -64,7 +65,7 @@ def gradient_ascent(density_estimator, starting_point):
         if counter > 75:
             break
 
-    # print(last_density, density_estimator.getDensity(starting_point))
+    #print(last_density, density_estimator.getDensity(starting_point))
 
     return [last_point, starting_point]
 
@@ -82,11 +83,19 @@ def train_denclue_clustering(datas, h=0.1, n_samples=100, noise_treshold=0.1):
         print(len(clusters), "/", len(datas))
 
     # on supprime les clusters redondants
-    #TODO
+    filtered_clusters = []
+    for i in range(len(clusters)):
+        good = True
+        for e in range(i, len(clusters)):
+            dst = np.sum(np.abs(clusters[i][0]-clusters[e][0]))
+            if dst < LEARNING_RATE*len(clusters[i][0]) and e != i:
+                good = False
+                break
+        if good:
+            filtered_clusters.append(clusters[i][0])
 
-    return np.array(clusters)
-
-    return DenclueCustering(clusters, KernelDensityEstimator(datas))
+    print(len(filtered_clusters), "clusters")
+    return DenclueCustering(filtered_clusters, KernelDensityEstimator(datas), noise_treshold)
 
 
 
@@ -102,6 +111,16 @@ class DenclueCustering:
     def isNoise(self, point_coordinates):
         return self.estimator.getDensity(point_coordinates) > self.treshold
     
+    # attribue un cluster à un point, NULL si hors cluster
     def getCluster(self, point_coordinates):
-        # TODO
-        return 0
+        local_max = gradient_ascent(self.estimator, point_coordinates)[0]
+        cc = 0
+        for cluster in self.clusters:
+            cc += 1
+            dst = np.sum(np.abs(cluster-local_max))
+            if dst < LEARNING_RATE * len(local_max):
+                return cc
+        return NULL
+
+    def getClusters(self):
+        return self.clusters

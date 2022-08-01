@@ -31,6 +31,11 @@ def concentric_circles():
 def plot_dataset(dataset):
     plt.plot(dataset[:,1], dataset[:,0], "o")
 
+
+def add_noise(datas, count):
+    for i in range(count):
+        datas.append([random.random(), random.random()])
+
 #datas = create_3_points_dataset()
 #datas = concentric_circles()
 #
