@@ -33,8 +33,10 @@ def plot_dataset(dataset):
 
 
 def add_noise(datas, count):
+    datas = list(datas)
     for i in range(count):
         datas.append([random.random(), random.random()])
+    return np.array(datas)
 
 #datas = create_3_points_dataset()
 #datas = concentric_circles()

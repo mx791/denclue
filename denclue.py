@@ -20,8 +20,6 @@ class KernelDensityEstimator:
         density = 0.0
         for point in self.datas:
             delta = np.sum((point - point_coordinates)**2)**2
-            #density += 1 / (2* np.pi * self.sigma**2) * np.exp(-delta/(2*self.sigma**2))
-            #density += (delta + 0.5) * (0.5 - delta)
             density += np.exp(-(delta/self.h)**2) / ((2.*np.pi)**(1/2)) / len(self.datas)
         return density
 
@@ -109,7 +107,8 @@ class DenclueCustering:
     
     # la densité en un point est elle suffisante, ou s'agit-il de bruit ?
     def isNoise(self, point_coordinates):
-        return self.estimator.getDensity(point_coordinates) > self.treshold
+        dst = self.estimator.getDensity(point_coordinates)
+        return dst < self.treshold
     
     # attribue un cluster à un point, NULL si hors cluster
     def getCluster(self, point_coordinates):
